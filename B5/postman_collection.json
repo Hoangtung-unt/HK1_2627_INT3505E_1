@@ -1,0 +1,49 @@
+{
+  "info": {
+    "name": "Bookstore API - Pagination & Filtering Lab",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Offset Pagination with Filter & Multi-Sort",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/books?strategy=offset&offset=0&limit=5&genre=tech&sort=-price,title",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "books"],
+          "query": [
+            { "key": "strategy", "value": "offset" },
+            { "key": "offset", "value": "0" },
+            { "key": "limit", "value": "5" },
+            { "key": "genre", "value": "tech" },
+            { "key": "sort", "value": "-price,title" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Cursor Pagination (First Page)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/books?strategy=cursor&limit=5&genre=tech&sort=-price,title",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "v1", "books"],
+          "query": [
+            { "key": "strategy", "value": "cursor" },
+            { "key": "limit", "value": "5" },
+            { "key": "genre", "value": "tech" },
+            { "key": "sort", "value": "-price,title" }
+          ]
+        }
+      }
+    }
+  ]
+}
