@@ -1,0 +1,287 @@
+openapi: 3.0.3
+info: 
+  title: Tasks API
+  version: 1.0.0
+  description: Quản lý task nội bộ, hỗ trợ trả về lỗi theo chuẩn RFC 7807.
+servers: 
+  - url: 'http://localhost:5000/v1'
+security: 
+  - bearerAuth: []
+tags: 
+  - name: tasks
+    description: Các API liên quan đến quản lý công việc
+
+paths:
+  /tasks:
+    get:
+      tags: [tasks]
+      operationId: listTasks
+      parameters:
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/StatusFilter'
+      responses:
+        '200': 
+          $ref: '#/components/responses/TaskPage'
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+          
+    post:
+      tags: [tasks]
+      operationId: createTask
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              $ref: '#/components/schemas/CreateTaskInput'
+      responses: 
+        '201': 
+          description: Tạo task thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+        '422': 
+          $ref: '#/components/responses/ValidationError'
+
+  /tasks/{taskId}:
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          
+    get:
+      tags: [tasks]
+      operationId: getTaskById
+      responses:
+        '200':
+          description: Chi tiết task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [tasks]
+      operationId: patchTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskInput'
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422': 
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags: [tasks]
+      operationId: deleteTask
+      responses:
+        '204':
+          description: Xóa thành công, không có nội dung trả về
+        '401': 
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 10
+    StatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [open, done]
+
+  schemas:
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+          enum: [open, done]
+        priority:
+          type: string
+          enum: [low, normal, high]
+        dueDate:
+          type: string
+          format: date
+        assigneeId:
+          type: string
+          
+    CreateTaskInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+        dueDate:
+          type: string
+          format: date
+        assigneeId:
+          type: string
+          
+    UpdateTaskInput:
+      type: object
+      properties:
+        title:
+          type: string
+        status:
+          type: string
+          enum: [open, done]
+        priority:
+          type: string
+          enum: [low, normal, high]
+        dueDate:
+          type: string
+          format: date
+        assigneeId:
+          type: string
+    Error:
+      type: object
+      required: [status, title, type]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+
+    ValidationErrorSchema:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+
+  responses:
+    TaskPage:
+      description: Phân trang danh sách Task
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+              limit:
+                type: integer
+              page:
+                type: integer
+
+    # ---------------- ĐỊNH NGHĨA RESPONSES LỖI (KÈM VÍ DỤ) ----------------
+    BadRequest:
+      description: Lỗi cú pháp (Bad Request)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://api.example.com/errors/bad-request"
+            title: "Bad Request"
+            status: 400
+            detail: "Cú pháp JSON không hợp lệ. Không thể phân tích cú pháp (parse) dữ liệu gửi lên."
+
+    Unauthorized:
+      description: Chưa xác thực Token (Unauthorized)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://api.example.com/errors/unauthorized"
+            title: "Unauthorized"
+            status: 401
+            detail: "Bạn cần cung cấp Bearer token hợp lệ để truy cập tài nguyên này."
+
+    NotFound:
+      description: Không tìm thấy tài nguyên (Not Found)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            type: "https://api.example.com/errors/not-found"
+            title: "Task not found"
+            status: 404
+            detail: "Không tìm thấy task với ID: 123e4567-e89b-12d3-a456-426614174000"
+            instance: "/v1/tasks/123e4567-e89b-12d3-a456-426614174000"
+
+    ValidationError:
+      description: Dữ liệu gửi lên không hợp lệ (Unprocessable Entity)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorSchema'
+          example:
+            type: "https://api.example.com/errors/validation-error"
+            title: "Validation Failed"
+            status: 422
+            detail: "Dữ liệu đầu vào không hợp lệ, vui lòng kiểm tra lại."
+            errors:
+              - field: "title"
+                message: "Trường 'title' là bắt buộc."
+              - field: "priority"
+                message: "Giá trị phải thuộc danh sách: [low, normal, high]."
